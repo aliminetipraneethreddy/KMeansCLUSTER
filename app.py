@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# Matplotlib (Cloud-safe)
-import matplotlib.pyplot as plt
+# ✅ Correct matplotlib import order (Cloud-safe)
+import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -204,4 +205,5 @@ if uploaded_file is not None:
 
 else:
     st.info("👈 Upload the `Wholesale customers data.csv` file to begin.")
+
 
