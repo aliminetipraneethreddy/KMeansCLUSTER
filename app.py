@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Matplotlib (Cloud-safe)
-import matplotlib
+import matplotlib.pyplot as plt
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -204,3 +204,4 @@ if uploaded_file is not None:
 
 else:
     st.info("👈 Upload the `Wholesale customers data.csv` file to begin.")
+
