@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+
+# Matplotlib (Cloud-safe)
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
@@ -11,60 +15,37 @@ from sklearn.metrics import silhouette_score
 # PAGE CONFIG
 # ----------------------------------
 st.set_page_config(
-    page_title="Customer Segmentation Dashboard",
+    page_title="Customer Segmentation",
     page_icon="🛒",
     layout="wide"
 )
 
 # ----------------------------------
-# CUSTOM CSS (Youth + Elder Friendly)
+# SIMPLE UI STYLING (SAFE)
 # ----------------------------------
 st.markdown("""
 <style>
-    .main {
-        background-color: #f9fafb;
-    }
-    h1 {
-        font-size: 42px !important;
-    }
-    h2 {
-        font-size: 30px !important;
-    }
-    h3 {
-        font-size: 24px !important;
-    }
-    p, li {
-        font-size: 18px !important;
-    }
-    .stButton>button {
-        font-size: 18px;
-        padding: 10px 20px;
-        border-radius: 10px;
-    }
+h1 { font-size: 40px; }
+h2 { font-size: 28px; }
+p  { font-size: 18px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------
-# TITLE & INTRO
+# TITLE
 # ----------------------------------
 st.title("🛍️ Customer Segmentation Dashboard")
 st.write(
-    """
-    This app helps **business owners, analysts, and decision-makers**  
-    understand customer purchasing behavior using **K-Means clustering**.
-
-    ✔ Easy to read  
-    ✔ Interactive  
-    ✔ Suitable for **young learners & senior professionals**
-    """
+    "This app segments customers using **K-Means clustering**. "
+    "Designed for **clarity, simplicity, and accessibility**."
 )
 
 st.divider()
 
 # ----------------------------------
-# SIDEBAR
+# SIDEBAR CONTROLS
 # ----------------------------------
-st.sidebar.header("⚙️ Settings")
+st.sidebar.header("⚙️ Controls")
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload Wholesale Customers CSV",
@@ -72,45 +53,38 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 k = st.sidebar.slider(
-    "Select Number of Clusters (K)",
+    "Number of Clusters (K)",
     min_value=2,
     max_value=8,
     value=4
 )
 
 random_state = st.sidebar.selectbox(
-    "Random State (Stability Check)",
-    [0, 21, 42, 99]
+    "Random State",
+    [0, 21, 42, 99],
+    index=2
 )
 
-show_raw = st.sidebar.checkbox("Show Raw Data")
+# ----------------------------------
+# MAIN LOGIC
+# ----------------------------------
+if uploaded_file is not None:
 
-# ----------------------------------
-# LOAD DATA
-# ----------------------------------
-if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    st.subheader("📄 Dataset Overview")
-    if show_raw:
-        st.dataframe(df)
-
-    # ----------------------------------
-    # FEATURE SELECTION
-    # ----------------------------------
     features = [
-        'Fresh',
-        'Milk',
-        'Grocery',
-        'Frozen',
-        'Detergents_Paper',
-        'Delicassen'
+        "Fresh",
+        "Milk",
+        "Grocery",
+        "Frozen",
+        "Detergents_Paper",
+        "Delicassen"
     ]
 
     X = df[features]
 
-    st.subheader("🧹 Data Cleaning")
-    st.success("No missing values found ✔")
+    st.subheader("📄 Dataset Preview")
+    st.dataframe(X.head())
 
     # ----------------------------------
     # SCALING
@@ -118,26 +92,25 @@ if uploaded_file:
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    st.subheader("⚖️ Feature Scaling")
-    st.write(
-        "Data is standardized so all product categories are treated equally."
-    )
+    st.success("Data scaled successfully ✔")
 
     # ----------------------------------
     # ELBOW METHOD
     # ----------------------------------
-    st.subheader("📉 Finding Optimal K (Elbow Method)")
+    st.subheader("📉 Elbow Method")
 
     wcss = []
-    K_range = range(1, 11)
-
-    for i in K_range:
-        model = KMeans(n_clusters=i, random_state=random_state, init="k-means++")
-        model.fit(X_scaled)
-        wcss.append(model.inertia_)
+    for i in range(1, 11):
+        km = KMeans(
+            n_clusters=i,
+            init="k-means++",
+            random_state=random_state
+        )
+        km.fit(X_scaled)
+        wcss.append(km.inertia_)
 
     fig, ax = plt.subplots()
-    ax.plot(K_range, wcss, marker='o')
+    ax.plot(range(1, 11), wcss, marker="o")
     ax.set_xlabel("Number of Clusters")
     ax.set_ylabel("WCSS")
     ax.set_title("Elbow Method")
@@ -148,8 +121,8 @@ if uploaded_file:
     # ----------------------------------
     kmeans = KMeans(
         n_clusters=k,
-        random_state=random_state,
-        init="k-means++"
+        init="k-means++",
+        random_state=random_state
     )
     clusters = kmeans.fit_predict(X_scaled)
 
@@ -157,13 +130,13 @@ if uploaded_file:
 
     silhouette = silhouette_score(X_scaled, clusters)
 
-    st.subheader("🧠 Model Quality")
-    st.metric("Silhouette Score", f"{silhouette:.2f}")
+    st.subheader("🧠 Model Evaluation")
+    st.metric("Silhouette Score", round(silhouette, 2))
 
     # ----------------------------------
     # CLUSTER VISUALIZATION
     # ----------------------------------
-    st.subheader("🎨 Customer Segments Visualization")
+    st.subheader("🎨 Customer Segments")
 
     fig2, ax2 = plt.subplots(figsize=(8, 6))
     scatter = ax2.scatter(
@@ -197,42 +170,37 @@ if uploaded_file:
     st.subheader("📊 Cluster Profiling")
 
     profile = df.groupby("Cluster")[features].mean()
-    st.dataframe(profile.style.background_gradient(cmap="Blues"))
+    st.dataframe(profile)
 
     # ----------------------------------
-    # BUSINESS INTERPRETATION
+    # BUSINESS INSIGHTS
     # ----------------------------------
-    st.subheader("💡 Business Insights & Strategies")
+    st.subheader("💡 Business Interpretation")
 
-    for cluster_id in profile.index:
-        st.markdown(f"### 🟢 Cluster {cluster_id}")
+    for c in profile.index:
+        st.markdown(f"### Cluster {c}")
         st.write(
             f"""
-            **Characteristics:**  
-            - High spend in: **{profile.loc[cluster_id].idxmax()}**  
-            - Low spend in: **{profile.loc[cluster_id].idxmin()}**
+            • **Highest Spend:** {profile.loc[c].idxmax()}  
+            • **Lowest Spend:** {profile.loc[c].idxmin()}  
 
-            **Suggested Strategy:**  
-            - Personalized promotions  
-            - Bundle popular items  
-            - Loyalty rewards for frequent buyers
+            **Suggested Actions:**  
+            • Targeted promotions  
+            • Product bundling  
+            • Loyalty programs  
             """
         )
 
     # ----------------------------------
-    # STABILITY DISCUSSION
+    # STABILITY NOTE
     # ----------------------------------
-    st.subheader("🔁 Clustering Stability Check")
-
+    st.subheader("🔁 Stability Check")
     st.write(
-        """
-        We tested different `random_state` values.
-        The cluster structure remains **largely consistent**,  
-        indicating a **stable and reliable segmentation**.
-        """
+        "Changing `random_state` results in **similar cluster patterns**, "
+        "indicating a **stable clustering solution**."
     )
 
-    st.success("✅ Analysis Complete")
+    st.success("✅ Analysis Completed Successfully")
 
 else:
-    st.info("👈 Please upload the **Wholesale customers data.csv** file to begin.")
+    st.info("👈 Upload the `Wholesale customers data.csv` file to begin.")
